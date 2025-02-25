@@ -1,3 +1,5 @@
+
+from datetime import time
 import streamlit as st
 import pandas as pd
 import os
@@ -8,16 +10,18 @@ st.set_page_config(page_title="Data sweeper app made by Ahtesham Ahmed", layout=
 st.title("Data Sweeper App")
 st.write("Transform your files between csv and excel formats with built-in cleaning and visualizing. Creating the first project in quarter 3")
 
-upload_file = st.file_uploader("Upload your files in CSV or XLSX", ["csv", "xlsx"], accept_multiple_files=True)
+upload_file = st.file_uploader("Upload your files in CSV or XLSX", ["csv", "xlsx",'JSON'], accept_multiple_files=True)
 
 if upload_file:
     for file in upload_file:
-        file_ext = os.path.splitext(file.name)[-1].lower()
+        file_ext = os.path.splitext(file.name)[1].lower()
 
         if file_ext == ".csv":
             df = pd.read_csv(file)
         elif file_ext == ".xlsx":
             df = pd.read_excel(file)
+        elif file_ext == ".JSON":
+            df=pd.read_json(file)
         else:
             st.error("File type not supported")
             continue
@@ -42,13 +46,30 @@ if upload_file:
         st.subheader("Select columns to keep")
         columns = st.multiselect(f"Choose columns to keep from {file.name}", df.columns, default=df.columns)
         df = df[columns]
-
+# Data visualization 
+        Progress_bar= st.progress(0)
+        status_text=st.empty()
+        
+        for i in range(100):
+           
+            Progress_bar.progress(i+1)
+            status_text.text(f'Progress: {i+1}%')
+        st.success("Data visualization completed")
         st.subheader("Data Visualization")
         if st.checkbox(f"Show visualization for {file.name}"):
-            st.bar_chart(df.select_dtypes(include=["number"]).iloc[:, :2])
+# chart
+         Bar_type = st.radio("please select your chart type:[plots,histogram,bar chart] ",["plots","area","barchart"])
+         if Bar_type == "plots":
+            st.line_chart(df.select_dtypes(include=["number"]))
+         elif Bar_type == "barchart":
+            st.bar_chart(df.select_dtypes(include=["number"] ))
+         elif Bar_type== "area":
+            st.area_chart(df.select_dtypes(include=["number"]))
+           
+
 
         st.subheader("File conversion option")
-        conversion_type = st.radio(f'Convert {file.name} to', ["csv", "xlsx"], key=file.name)
+        conversion_type = st.radio(f'Convert {file.name} to', ["csv", "xlsx","JSON"], key=file.name)
 
         if st.button(f"Convert {file.name}"):
             buffer = BytesIO()
@@ -58,9 +79,17 @@ if upload_file:
                 mime_type = "text/csv"
             elif conversion_type == "xlsx":
                 df.to_excel(buffer, index=False)
+                file_name = file.name.replace(file_ext, ".xlsx")
                 mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                buffer.seek(0)
-
+            elif conversion_type == "JSON":
+                df.to_json(buffer,index=False)
+                file_name = file.name.replace(file_ext, ".JSON")
+                mime_type = "application/json"
+            st.success("file converted successfully")
             st.download_button(label=f"Click here to download {file_name}", data=buffer, file_name=file_name, mime=mime_type,)
 
         st.success("All files processed successfully")
+
+       
+
+
